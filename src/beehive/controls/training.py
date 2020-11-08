@@ -50,6 +50,6 @@ def build_trainer(cfg):
 def train(cfg):
     trainer = build_trainer(cfg)
     trainer.set_local_rank(cfg.local_rank)
+    trainer.set_world_size(cfg.world_size)
     trainer.train(**cfg.train.params)
-
 

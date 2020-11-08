@@ -29,8 +29,12 @@ class Predictor:
         y_pred = []
         y_true = []
         losses = []
+        if self.local_rank == 0:
+            iterator = tqdm(enumerate(self.loader), total=len(self.loader))
+        else:
+            iterator = enumerate(self.loader)
         with torch.no_grad():
-            for i, data in tqdm(enumerate(self.loader), total=len(self.loader)):
+            for i, data in iterator:
                 if self.debug:
                     if i > 10:
                         break
@@ -119,6 +123,8 @@ class Evaluator(Predictor):
         if save_pickle:
             with open(osp.join(self.save_checkpoint_dir, f'.tmp_preds_rank{self.local_rank}.pkl'), 'wb') as f:
                 pickle.dump({'y_true': y_true, 'y_pred': y_pred, 'losses': losses}, f)
+            with open(osp.join(self.save_checkpoint_dir, f'.done_rank{self.local_rank}.txt'), 'w') as f:
+                f.write('done')
         else:
             return y_true, y_pred, losses
 

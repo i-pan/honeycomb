@@ -1,5 +1,8 @@
 import datetime
+import glob
 import numpy as np
+import os, os.path as osp
+import pickle
 import time
 
 try:
@@ -248,6 +251,15 @@ class Trainer(Step):
         self.local_rank = local_rank
         self.evaluator.set_local_rank(local_rank)
 
+    def set_world_size(self, world_size=1):
+        self.world_size = world_size
+
+    @staticmethod
+    def load_pickle(fp):
+        with open(fp, 'rb') as f:
+            return pickle.load(f)
+        _ = os.system(f'rm {fp}')
+
     def train(self,
               num_epochs,
               steps_per_epoch,
@@ -283,45 +295,45 @@ class Trainer(Step):
                 self.print_progress()
             # Check- run validation
             if self.check_validation():
-                if self.local_rank == 0:
-                    self.print('VALIDATING ...')
-                    validation_start_time = datetime.datetime.now()
-                    # Start validation
-                    self.model.eval()
-                    if dist_val:
-                        self.evaluator.validate(self.model,
-                            self.criterion,
-                            str(self.current_epoch).zfill(len(str(self.num_epochs))),
-                            save_pickle=True)
-                        if self.local_rank == 0:
-                            while 1:
-                                predictions = glob.glob(osp.join(self.evaluator.save_checkpoint_dir, '.tmp_preds_rank*.pkl'))
-                                if len(predictions) == self.world_size:
-                                    break
-                            time.sleep(5)
-                            # Combine and calculate validation stats
-                            predictions = [self.load_pickle(p) for p in predictions]
-                            y_true = np.concatenate([p['y_true'] for p in predictions])
-                            y_pred = np.concatenate([p['y_pred'] for p in predictions])
-                            losses = np.concatenate([p['losses'] for p in predictions])
-                            del predictions
-                            valid_metric = self.evaluator.calculate_metrics(y_true, y_pred, losses)
-                            self.evaluator.save_checkpoint(self.model, valid_metric, y_true, y_pred)
-                            self.print('Validation took {} !'.format(datetime.datetime.now() - validation_start_time))
-                    elif self.local_rank == 0:
-                        y_true, y_pred, losses = self.evaluator.validate(self.model,
-                            self.criterion,
-                            str(self.current_epoch).zfill(len(str(self.num_epochs))),
-                            save_pickle=False)
+                self.print('VALIDATING ...')
+                validation_start_time = datetime.datetime.now()
+                # Start validation
+                self.model.eval()
+                if dist_val:
+                    self.evaluator.validate(self.model,
+                        self.criterion,
+                        str(self.current_epoch).zfill(len(str(self.num_epochs))),
+                        save_pickle=True)
+                    if self.local_rank == 0:
+                        while 1:
+                            finished = glob.glob(osp.join(self.evaluator.save_checkpoint_dir, '.done_rank*.txt'))
+                            if len(finished) == self.world_size:
+                                break
+                        _ = os.system(f'rm {osp.join(self.evaluator.save_checkpoint_dir, ".done_rank*.txt")}')
+                        time.sleep(1)
+                        predictions = glob.glob(osp.join(self.evaluator.save_checkpoint_dir, '.tmp_preds_rank*.pkl'))
+                        # Combine and calculate validation stats
+                        predictions = [self.load_pickle(p) for p in predictions]
+                        y_true = np.concatenate([p['y_true'] for p in predictions])
+                        y_pred = np.concatenate([p['y_pred'] for p in predictions])
+                        losses = np.concatenate([p['losses'] for p in predictions])
+                        del predictions
                         valid_metric = self.evaluator.calculate_metrics(y_true, y_pred, losses)
                         self.evaluator.save_checkpoint(self.model, valid_metric, y_true, y_pred)
                         self.print('Validation took {} !'.format(datetime.datetime.now() - validation_start_time))
-
-                    if self.scheduler.update == 'on_valid':
-                        self.scheduler.step(valid_metric)
-                    # End validation
-                    self.model.train()
+                elif self.local_rank == 0:
+                    y_true, y_pred, losses = self.evaluator.validate(self.model,
+                        self.criterion,
+                        str(self.current_epoch).zfill(len(str(self.num_epochs))),
+                        save_pickle=False)
+                    valid_metric = self.evaluator.calculate_metrics(y_true, y_pred, losses)
+                    self.evaluator.save_checkpoint(self.model, valid_metric, y_true, y_pred)
                     self.print('Validation took {} !'.format(datetime.datetime.now() - validation_start_time))
+
+                if self.scheduler.update == 'on_valid':
+                    self.scheduler.step(valid_metric)
+                # End validation
+                self.model.train()
             # Check- end of epoch
             if self.check_end_epoch():
                 if self.scheduler.update == 'on_epoch':
