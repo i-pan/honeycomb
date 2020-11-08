@@ -1,3 +1,4 @@
+import cv2
 import pydicom
 import random
 import numpy as np
@@ -9,7 +10,7 @@ from torch.utils import data
 NONETYPE = type(None)
 
 
-class PneumoniaDataset(data.Dataset):
+class ImageDataset(data.Dataset):
 
     def __init__(self,
                  inputs,
@@ -52,10 +53,11 @@ class PneumoniaDataset(data.Dataset):
         X = np.ascontiguousarray(X)
         return X
 
+
     def get(self, i):
         try:
-            X = pydicom.dcmread(self.inputs[i])
-            X = np.repeat(np.expand_dims(X.pixel_array, axis=-1), 3, axis=-1)
+            X = cv2.imread(self.inputs[i])
+            # Remember cv2 loads in as BGR !!
             return X
         except Exception as e:
             if self.verbose: print(e)
@@ -78,8 +80,16 @@ class PneumoniaDataset(data.Dataset):
         return X, y
 
 
+class DICOMDataset(ImageDataset):
 
-
+    def get(self, i):
+        try:
+            X = pydicom.dcmread(self.inputs[i])
+            X = np.repeat(np.expand_dims(X.pixel_array, axis=-1), 3, axis=-1)
+            return X
+        except Exception as e:
+            if self.verbose: print(e)
+            return None
 
 
 

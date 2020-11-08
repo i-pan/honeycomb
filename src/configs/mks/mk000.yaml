@@ -12,7 +12,7 @@ data:
   inner_fold: 0
   outer_fold: 0
   dataset:
-    name: PneumoniaDataset
+    name: DICOMDataset
     params:
       flip: true
       verbose: true
