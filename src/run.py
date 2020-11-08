@@ -27,6 +27,7 @@ def parse_args():
 def setup_dist(rank):
     torch.cuda.set_device(rank)
     torch.distributed.init_process_group('nccl', init_method='env://')
+    return torch.distributed.get_world_size()
 
 
 def create_logger(save_dir, mode):
@@ -44,10 +45,12 @@ def create_logger(save_dir, mode):
 def setup(args, cfg):
     if args.dist:
         # Distributed training
-        setup_dist(args.local_rank)
+        cfg.world_size = setup_dist(args.local_rank)
+        cfg.train.params.dist_val = args.dist_val
     elif args.device_id >= 0:
         # Single GPU
         torch.cuda.set_device(args.device_id)
+        cfg.world_size = 1
 
     cfg.experiment.distributed = args.dist
     cfg.experiment.sync_bn = args.sync_bn
