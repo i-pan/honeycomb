@@ -13,8 +13,8 @@ def resize(imsize):
 
 
 # This can be more useful if training w/ crops
-def resize_alt(x, y=None):
-    if y is None: y = x
+def resize_alt(imsize):
+    x, y = imsize
     return A.Compose([
             A.SmallestMaxSize(max_size=max(x,y), always_apply=True, p=1)
         ], p=1)
