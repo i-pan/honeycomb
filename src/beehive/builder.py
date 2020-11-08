@@ -75,6 +75,8 @@ def build_dataloader(cfg, dataset, mode):
             dataloader_params['shuffle'] = False
             dataloader_params['sampler'] = sampler
     else:
+        if not cfg.evaluate.batch_size:
+            cfg.evaluate.batch_size = cfg.train.batch_size
         dataloader_params['batch_size'] = cfg.evaluate.batch_size
         sampler = None
         if cfg.experiment.distributed and cfg.train.params.dist_val:

@@ -35,7 +35,8 @@ class Net2D(nn.Module):
         self.linear = nn.Linear(dim_feats, num_classes)
 
     def forward(self, x):
-        features = self.backbone(x) 
+        features = self.backbone(x)
+        features = features.view(features.shape[:2])
         if self.ms_dropout:
             x = torch.mean(
                 torch.stack(

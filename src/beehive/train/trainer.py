@@ -288,7 +288,7 @@ class Trainer(Step):
                     validation_start_time = datetime.datetime.now()
                     # Start validation
                     self.model.eval()
-                    if self.dist_val:
+                    if dist_val:
                         self.evaluator.validate(self.model,
                             self.criterion,
                             str(self.current_epoch).zfill(len(str(self.num_epochs))),
