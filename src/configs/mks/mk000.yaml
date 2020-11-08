@@ -1,0 +1,89 @@
+experiment:
+  cuda: true
+  name: mk000
+  seed: 88
+  save_logs: ../logs/
+  save_checkpoints: ../checkpoints/
+
+
+data: 
+  annotations: ../data/train_kfold.csv
+  data_dir: ../data/stage_2_train_images/
+  inner_fold: 0
+  outer_fold: 0
+  dataset:
+    name: PneumoniaDataset
+    params:
+      flip: true
+      verbose: true
+
+
+transform:
+  resize:
+    name: resize
+    params:
+      imsize: [512, 512]
+  augment:
+    name: RandAugment
+    params:
+      n: 3
+      m: 12.0
+  preprocess:
+    name: Preprocessor
+    params:
+      image_range: [0, 255]
+      input_range: [0, 1]
+      mean: [0.485, 0.456, 0.406]
+      sdev: [0.229, 0.224, 0.225]
+
+
+model:
+  name: Net2D
+  params:
+    backbone: tf_efficientnet_b6_ns
+    pretrained: true
+    num_classes: 2
+    dropout: 0.2
+    multisample_dropout: true
+    pool: gem 
+
+
+loss:
+  name: CrossEntropyLoss
+  params:
+
+
+optimizer:
+  name: AdamW
+  params:
+    lr: 3.0e-4
+    weight_decay: 5.0e-4
+
+
+scheduler: 
+  name: CosineAnnealingLR
+  params:
+    final_lr: 1.0e-8
+
+
+train:
+  batch_size: 16
+  name: Trainer
+  params:
+    num_epochs: 10
+    steps_per_epoch: 0
+    validate_interval: 1
+    gradient_accumulation: 1
+    amp: true
+
+
+evaluate: 
+  name: Evaluator
+  params:
+    metrics: [auc]
+    valid_metric: auc
+    mode: max
+    improve_thresh: 1.0e-4
+    save_best: true
+
+
