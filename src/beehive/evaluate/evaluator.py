@@ -15,11 +15,13 @@ class Predictor:
     def __init__(self,
                  loader,
                  cuda=True,
-                 debug=False):
+                 debug=False,
+                 act_fn='sigmoid'):
 
         self.loader = loader
         self.cuda = cuda
         self.debug = debug
+        self.act_fn = act_fn
 
     def set_local_rank(self, local_rank=0):
         self.local_rank = local_rank
@@ -44,7 +46,12 @@ class Predictor:
                 output = model(batch)
                 if criterion:
                     losses += [criterion(output, labels).item()]
-                output = torch.softmax(output, dim=1)
+                if self.act_fn == 'sigmoid':
+                    output = torch.sigmoid(output)
+                elif self.act_fn == 'softmax': 
+                    output = torch.softmax(output, dim=1)
+                else:
+                    raise Exception(f'`{self.act_fn}` is not a valid activation function !')
                 y_pred += list(output.cpu().numpy())
                 y_true += list(labels.cpu().numpy())
 
@@ -68,12 +75,14 @@ class Evaluator(Predictor):
                  early_stopping=np.inf,
                  thresholds=np.arange(0.05, 1.05, 0.05),
                  cuda=True,
-                 debug=False):
+                 debug=False,
+                 **kwargs):
         
         super(Evaluator, self).__init__(
             loader=loader, 
             cuda=cuda,
-            debug=debug)
+            debug=debug,
+            **kwargs)
 
         if type(metrics) is not list: metrics = list(metrics)
 

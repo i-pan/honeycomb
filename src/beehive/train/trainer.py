@@ -257,8 +257,9 @@ class Trainer(Step):
     @staticmethod
     def load_pickle(fp):
         with open(fp, 'rb') as f:
-            return pickle.load(f)
+            loaded = pickle.load(f)
         _ = os.system(f'rm {fp}')
+        return loaded
 
     def train(self,
               num_epochs,

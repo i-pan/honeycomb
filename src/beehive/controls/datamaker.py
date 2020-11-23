@@ -6,8 +6,7 @@ import os, os.path as osp
 from ..builder import build_dataset, build_dataloader
 
 
-def get_train_val_test_splits(cfg): 
-    df = pd.read_csv(cfg.data.annotations)
+def get_train_val_test_splits(cfg, df): 
     i, o = cfg.data.inner_fold, cfg.data.outer_fold
     if isinstance(i, (int,float)):
         if cfg.local_rank == 0:
@@ -18,6 +17,8 @@ def get_train_val_test_splits(cfg):
         df = df[df.outer != o]
         train_df = df[df[f'inner{o}'] != i]
         valid_df = df[df[f'inner{o}'] == i]
+        valid_df = valid_df.drop_duplicates().reset_index(drop=True)
+        test_df = test_df.drop_duplicates().reset_index(drop=True)
     else:
         if cfg.local_rank == 0:
             logger = logging.getLogger('root')
@@ -26,6 +27,7 @@ def get_train_val_test_splits(cfg):
         test_df = None
         train_df = df[df.outer != o]
         valid_df = df[df.outer == o]
+        valid_df = valid_df.drop_duplicates().reset_index(drop=True)
     return train_df, valid_df, test_df
 
 
@@ -37,7 +39,9 @@ def get_train_val_dataloaders(cfg):
     INPUT_COL = 'filename'
     LABEL_COL = 'Target'
 
-    train_df, valid_df, _ = get_train_val_test_splits(cfg)
+    df = pd.read_csv(cfg.data.annotations)
+    
+    train_df, valid_df, _ = get_train_val_test_splits(cfg, df)
     data_dir = cfg.data.data_dir
     train_inputs = prepend_filepath(train_df[INPUT_COL], data_dir)
     train_labels = train_df[LABEL_COL].values

@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import albumentations as A
 
@@ -8,7 +9,7 @@ def resize(imsize):
     x, y = imsize
     return A.Compose([
             A.LongestMaxSize(max_size=max(x,y), always_apply=True, p=1),
-            A.PadIfNeeded(min_height=x, min_width=y, always_apply=True, p=1)
+            A.PadIfNeeded(min_height=x, min_width=y, always_apply=True, p=1, border_mode=cv2.BORDER_CONSTANT, value=0, mask_value=0)
         ], p=1)
 
 

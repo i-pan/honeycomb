@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument('--num-workers', type=int, default=0)
     parser.add_argument('--device_id', type=int, default=0)
     parser.add_argument('--kfold', type=int, default=-1)
+    parser.add_argument('--debug', action='store_true')
     return parser.parse_args()
 
 
@@ -52,6 +53,10 @@ def setup(args, cfg):
         torch.cuda.set_device(args.device_id)
         cfg.world_size = 1
 
+    if args.debug:
+        cfg.train.params.steps_per_epoch = 1
+        cfg.evaluate.params.debug = True
+        
     cfg.experiment.distributed = args.dist
     cfg.experiment.sync_bn = args.sync_bn
 
