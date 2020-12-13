@@ -90,13 +90,3 @@ class DICOMDataset(ImageDataset):
         except Exception as e:
             if self.verbose: print(e)
             return None
-
-
-
-
-
-
-
-
-
-

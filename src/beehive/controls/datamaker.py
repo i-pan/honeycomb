@@ -7,6 +7,12 @@ from ..builder import build_dataset, build_dataloader
 
 
 def get_train_val_test_splits(cfg, df): 
+    if 'split' in df.columns and cfg.data.use_fixed_splits:
+        train_df = df[df.split == 'train']
+        valid_df = df[df.split == 'valid']
+        test_df  = df[df.split == 'test']
+        return train_df, valid_df, test_df
+
     i, o = cfg.data.inner_fold, cfg.data.outer_fold
     if isinstance(i, (int,float)):
         if cfg.local_rank == 0:
@@ -36,8 +42,8 @@ def prepend_filepath(lst, prefix):
 
 
 def get_train_val_dataloaders(cfg):
-    INPUT_COL = 'filename'
-    LABEL_COL = 'Target'
+    INPUT_COL = cfg.data.input or 'filename'
+    LABEL_COL = cfg.data.target or 'Target'
 
     df = pd.read_csv(cfg.data.annotations)
     

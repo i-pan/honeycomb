@@ -4,6 +4,7 @@ import numpy as np
 import os, os.path as osp
 import pickle
 import time
+import torch
 
 try:
     from torch.cuda.amp import GradScaler, autocast
@@ -261,6 +262,10 @@ class Trainer(Step):
         _ = os.system(f'rm {fp}')
         return loaded
 
+    def save_model(self):
+        # Save latest model to latest.pth
+        torch.save(self.model.state_dict(), os.path.join(self.evaluator.save_checkpoint_dir, 'latest.pth'))
+
     def train(self,
               num_epochs,
               steps_per_epoch,
@@ -345,6 +350,8 @@ class Trainer(Step):
                 if 'warmrestarts' in str(self.scheduler).lower():
                     if self.current_epoch % self.scheduler.T_0 == 0:
                         self.evaluator.reset_best()
+                if self.local_rank == 0:
+                    self.save_model()
             #
             if self.evaluator.check_stopping(): 
                 # Make sure to set number of epochs to max epochs

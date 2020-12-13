@@ -101,6 +101,17 @@ class DenseCrossEntropy(nn.Module):
         return loss.mean()
 
 
+class SimSiamLoss(nn.Module):
+
+    def forward(self, p, *args, **kwargs):
+        # p is a tuple
+        p, z = p
+        z = z.detach()
+        p = F.normalize(p, dim=1)
+        z = F.normalize(z, dim=1)
+        return -(p*z).sum(dim=1).mean()
+
+
 class ArcFaceLoss(nn.Module):
 
     def __init__(self, s=30.0, m=0.5):
